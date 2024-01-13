@@ -30,7 +30,7 @@ Specific time range, verbose output:
   ```
 
 > [!NOTE]
-> To manage high log volumes in R2, tweak the time range to your needs.
+> Reduce the time range if the amount of data in R2 is too large.
 
 ## Environment Variables 🌐
 Set up these variables before using `cargo-r2logs`:
