@@ -31,6 +31,8 @@ struct Args {
     //
     // if `cargo run`, this workaround occurs an error.
     // so, use `cargo run -- arg` or `cargo run -- arg [args]` instead.
+    //
+    // c.f. https://doc.rust-lang.org/cargo/reference/external-tools.html#custom-subcommands
     arguments: String,
     /// e.g. 2024-01-11T15:00:00Z
     ///
