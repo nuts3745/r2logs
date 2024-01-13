@@ -16,9 +16,41 @@
 //! - [Cloudflare Logs Engine](https://developers.cloudflare.com/logs/r2-log-retrieval/)
 //! - [R2](https://developers.cloudflare.com/r2/)
 
-use chrono::{Duration, Utc};
+use chrono::{DateTime, Duration, Utc};
+use clap::Parser;
 use serde_json::Value;
 use std::env;
+
+#[derive(Parser, Debug)]
+#[command(author, version, about)]
+struct Args {
+    // in the case of `cargo <subcommand> [args]`,
+    //   Args[0]: /path/to/cargo-subcommand
+    //   Args[1]: <subcommand>
+    //   Args[2]: [args]
+    //
+    // if `cargo run`, this workaround occurs an error.
+    // so, use `cargo run -- arg` or `cargo run -- arg [args]` instead.
+    arguments: String,
+    /// e.g. 2024-01-11T15:00:00Z
+    ///
+    /// RFC3339 datetime format (UTC)
+    ///
+    /// default: 5 minutes ago
+    start_time: Option<DateTime<Utc>>,
+    /// e.g. 2024-01-11T15:05:00Z
+    ///
+    /// RFC3339 datetime format (UTC)
+    ///
+    /// default: now
+    end_time: Option<DateTime<Utc>>,
+    /// JSON Pretty print
+    #[arg(short, long)]
+    pretty: bool,
+    /// Verbose output, print time range and endpoint
+    #[arg(short, long)]
+    verbose: bool,
+}
 
 #[tokio::main]
 async fn main() -> Result<(), reqwest::Error> {
@@ -29,30 +61,16 @@ async fn main() -> Result<(), reqwest::Error> {
     let account_id = env::var("CF_ACCOUNT_ID").expect("CF_ACCOUNT_ID not set");
     let bucket = env::var("BUCKET_NAME").expect("BUCKET_NAME not set");
 
-    // TODO: Use `clap` instead of `env::args()`
-    let args: Vec<String> = env::args().collect();
-    let pretty = args.contains(&"--pretty".to_string());
-    let verbose = args.contains(&"--verbose".to_string());
+    let args = Args::parse();
 
-    // in the case of `cargo <subcommand> [args]`,
-    //   Args[0]: /path/to/cargo-subcommand
-    //   Args[1]: <subcommand>
-    //   Args[2]: [args]
-    //
-    // if `cargo run`, this workaround occurs an error.
-    // so, use `cargo run -- --` or `cargo run -- -- [args]` instead.
-    let _path = &args[0];
-    let _command = &args[1];
+    let time1 = args
+        .start_time
+        .unwrap_or_else(|| Utc::now() - Duration::minutes(5));
+    let time2 = args.end_time.unwrap_or_else(Utc::now);
+    let start_time = format_datetime(&time1);
+    let end_time = format_datetime(&time2);
 
-    let (start_time, end_time) = if args.len() <= 3 {
-        let end_time = Utc::now();
-        let start_time = end_time - Duration::minutes(5);
-        // start_time is 5 minutes ago, if no args
-        (format_datetime(&start_time), format_datetime(&end_time))
-    } else {
-        (args[2].clone(), args[3].clone())
-    };
-    if verbose {
+    if args.verbose {
         println!();
         println!(
             "Retrieving logs from \x1b[32m{}\x1b[0m to \x1b[32m{}\x1b[0m ",
@@ -64,7 +82,7 @@ async fn main() -> Result<(), reqwest::Error> {
         "https://api.cloudflare.com/client/v4/accounts/{}/logs/retrieve?start={}&end={}&bucket={}",
         account_id, start_time, end_time, bucket
     );
-    if verbose {
+    if args.verbose {
         println!();
         println!("Accessing endpoint: \x1b[32m{}\x1b[0m", endpoint);
         println!();
@@ -93,7 +111,7 @@ async fn main() -> Result<(), reqwest::Error> {
     for line in text.lines() {
         match serde_json::from_str::<Value>(line) {
             Ok(json) => {
-                if pretty {
+                if args.pretty {
                     match serde_json::to_string_pretty(&json) {
                         Ok(formatted) => println!("{}", formatted),
                         Err(e) => eprintln!("Failed to format JSON: {}", e),
