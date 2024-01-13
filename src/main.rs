@@ -2,9 +2,9 @@
 //! A simple CLI tool to retrieve logs from Cloudflare Logs Engine.
 //! ## Usage
 //! ```zsh
-//! cargo r2logs [start_time] [end_time] [--pretty | --verbose]
-//! cargo r2logs [--pretty] # last 5 minutes
-//! cargo r2logs [--verbose] # print time range and endpoint
+//! r2logs [start_time] [end_time] [--pretty | --verbose]
+//! r2logs [--pretty] # last 5 minutes
+//! r2logs [--verbose] # print time range and endpoint
 //! ```
 //! ## Environment Variables
 //! - `CF_API_KEY`: Cloudflare API key
@@ -24,16 +24,6 @@ use std::env;
 #[derive(Parser, Debug)]
 #[command(author, version, about)]
 struct Args {
-    // in the case of `cargo <subcommand> [args]`,
-    //   Args[0]: /path/to/cargo-subcommand
-    //   Args[1]: <subcommand>
-    //   Args[2]: [args]
-    //
-    // if `cargo run`, this workaround occurs an error.
-    // so, use `cargo run -- arg` or `cargo run -- arg [args]` instead.
-    //
-    // c.f. https://doc.rust-lang.org/cargo/reference/external-tools.html#custom-subcommands
-    arguments: String,
     /// e.g. 2024-01-11T15:00:00Z
     ///
     /// RFC3339 datetime format (UTC)
