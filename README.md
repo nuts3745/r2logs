@@ -27,8 +27,11 @@ cargo r2logs --pretty
 
 Retrieve logs from a specific time range with verbose output:
 ```zsh
-cargo r2logs 2024-01-11T15:00:00Z 2024-01-11T15:05:00 --verbose
+cargo r2logs 2024-01-11T15:00:00Z 2024-01-11T15:05:00Z --verbose
 ```
+
+> [!NOTE]
+> To handle high log volumes in R2, adjust the time range accordingly.
 
 ## Environment Variables
 Set the following environment variables before using `cargo-r2logs`:
