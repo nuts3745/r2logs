@@ -29,22 +29,31 @@ async fn main() -> Result<(), reqwest::Error> {
     let account_id = env::var("CF_ACCOUNT_ID").expect("CF_ACCOUNT_ID not set");
     let bucket = env::var("BUCKET_NAME").expect("BUCKET_NAME not set");
 
+    // TODO: Use `clap` instead of `env::args()`
     let args: Vec<String> = env::args().collect();
     let pretty = args.contains(&"--pretty".to_string());
     let verbose = args.contains(&"--verbose".to_string());
 
+    // in the case of `cargo <subcommand> [args]`,
+    //   Args[0]: /path/to/cargo-subcommand
+    //   Args[1]: <subcommand>
+    //   Args[2]: [args]
+    //
+    // if `cargo run`, this workaround occurs an error.
+    // so, use `cargo run -- --` or `cargo run -- -- [args]` instead.
     let _path = &args[0];
     let _command = &args[1];
 
     let (start_time, end_time) = if args.len() <= 3 {
         let end_time = Utc::now();
         let start_time = end_time - Duration::minutes(5);
+        // start_time is 5 minutes ago, if no args
         (format_datetime(&start_time), format_datetime(&end_time))
     } else {
         (args[2].clone(), args[3].clone())
     };
     if verbose {
-        println!("");
+        println!();
         println!(
             "Retrieving logs from \x1b[32m{}\x1b[0m to \x1b[32m{}\x1b[0m ",
             start_time, end_time
@@ -56,8 +65,9 @@ async fn main() -> Result<(), reqwest::Error> {
         account_id, start_time, end_time, bucket
     );
     if verbose {
-        println!("");
+        println!();
         println!("Accessing endpoint: \x1b[32m{}\x1b[0m", endpoint);
+        println!();
     }
 
     let client = reqwest::Client::new();
