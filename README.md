@@ -14,23 +14,20 @@ Retrieve logs within a specified time range using `r2logs`. Time format: `YYYY-M
 
 ```zsh
 $ r2logs [OPTIONS] [START_TIME] [END_TIME]
-$ r2logs --pretty # Last 5 minutes
-$ r2logs --verbose # Time range and endpoint details
+$ r2logs # retrieve logs from 5 minutes ago to now
+$ r2logs --help # print help
 ```
 ## Examples 📝
 
-Last 5 minutes, pretty format:
+Specific time range, verbose output:
   ```zsh
-  $ r2logs -p
+  $ r2logs -v 2024-01-11T15:00:00Z 2024-01-11T15:01:00Z
   ```
-
-Specific time range, verbose output and pretty format:
+Pretty print JSON output with [jq](https://github.com/jqlang/jq) and
+Fuzzy search logs with [fzf](https://github.com/junegunn/fzf)
   ```zsh
-  $ r2logs -pv 2024-01-11T15:00:00Z 2024-01-11T15:01:00Z
+  $ r2logs | jq . | fzf
   ```
-
-> [!NOTE]
-> Reduce the time range if the amount of data in R2 is too large.
 
 ## Environment Variables 🌐
 Set up these variables before using `r2logs`:
