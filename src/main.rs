@@ -2,10 +2,19 @@
 //! A simple CLI tool to retrieve logs from Cloudflare Logs Engine.
 //! ## Usage
 //! ```zsh
-//! r2logs [start_time] [end_time] [--pretty | --verbose]
-//! r2logs [--pretty] # last 5 minutes
-//! r2logs [--verbose] # print time range and endpoint
+//! r2logs [OPTIONS] [START_TIME] [END_TIME]
+//! r2logs # retrieve logs from 5 minutes ago to now
+//! r2logs 2024-01-11T15:00:00Z 2024-01-11T15:05:00Z # retrieve logs from 2024-01-11T15:00:00Z to 2024-01-11T15:05:00Z
+//! r2logs | jq . # pretty print JSON
+//! r2logs --help # print help
 //! ```
+//! ## Options
+//! - -v, --verbose
+//!   - Verbose output, print time range and endpoint
+//! - -h, --help
+//!   - Print help (see a summary with '-h')
+//! - -V, --version
+//!   - Print version
 //! ## Environment Variables
 //! - `CF_API_KEY`: Cloudflare API key
 //! - `R2_ACCESS_KEY_ID`: R2 Access Key ID
@@ -18,9 +27,9 @@
 
 use chrono::{DateTime, Duration, Utc};
 use clap::Parser;
-use serde_json::Value;
 use std::env;
 
+/// ## CLI Arguments and Options
 #[derive(Parser, Debug)]
 #[command(author, version, about)]
 struct Args {
@@ -36,31 +45,84 @@ struct Args {
     ///
     /// default: now
     end_time: Option<DateTime<Utc>>,
-    /// JSON Pretty print
-    #[arg(short, long)]
-    pretty: bool,
     /// Verbose output, print time range and endpoint
     #[arg(short, long)]
     verbose: bool,
 }
 
+impl Args {
+    fn format_datetime(datetime: &DateTime<Utc>) -> String {
+        datetime.format("%Y-%m-%dT%H:%M:%SZ").to_string()
+    }
+}
+
+/// ## Environment Variables
+/// - `CF_API_KEY`: Cloudflare API key
+/// - `R2_ACCESS_KEY_ID`: R2 Access Key ID
+/// - `R2_SECRET_ACCESS_KEY`: R2 Secret Access Key
+/// - `CF_ACCOUNT_ID`: Cloudflare Account ID
+/// - `BUCKET_NAME`: Bucket name
+struct Env {
+    cf_api_key: String,
+    r2_access_key_id: String,
+    r2_secret_access_key: String,
+    cf_account_id: String,
+    bucket_name: String,
+}
+
+impl Env {
+    fn new() -> Result<Self, String> {
+        let cf_api_key = match env::var("CF_API_KEY") {
+            Ok(val) => val,
+            Err(_) => return Err("CF_API_KEY is not set".to_string()),
+        };
+        let r2_access_key_id = match env::var("R2_ACCESS_KEY_ID") {
+            Ok(val) => val,
+            Err(_) => return Err("R2_ACCESS_KEY_ID is not set".to_string()),
+        };
+        let r2_secret_access_key = match env::var("R2_SECRET_ACCESS_KEY") {
+            Ok(val) => val,
+            Err(_) => return Err("R2_SECRET_ACCESS_KEY is not set".to_string()),
+        };
+        let cf_account_id = match env::var("CF_ACCOUNT_ID") {
+            Ok(val) => val,
+            Err(_) => return Err("CF_ACCOUNT_ID is not set".to_string()),
+        };
+        let bucket_name = match env::var("BUCKET_NAME") {
+            Ok(val) => val,
+            Err(_) => return Err("BUCKET_NAME is not set".to_string()),
+        };
+
+        Ok(Self {
+            cf_api_key,
+            r2_access_key_id,
+            r2_secret_access_key,
+            cf_account_id,
+            bucket_name,
+        })
+    }
+}
+
 #[tokio::main]
 async fn main() -> Result<(), reqwest::Error> {
-    let api_key = env::var("CF_API_KEY").expect("CF_API_KEY not set");
-    let r2_access_key_id = env::var("R2_ACCESS_KEY_ID").expect("R2_ACCESS_KEY_ID not set");
-    let r2_secret_access_key =
-        env::var("R2_SECRET_ACCESS_KEY").expect("R2_SECRET_ACCESS_KEY not set");
-    let account_id = env::var("CF_ACCOUNT_ID").expect("CF_ACCOUNT_ID not set");
-    let bucket = env::var("BUCKET_NAME").expect("BUCKET_NAME not set");
-
+    let env = match Env::new() {
+        Ok(env) => env,
+        Err(e) => {
+            eprintln!("{}", e);
+            eprintln!("Please set environment variables");
+            return Ok(());
+        }
+    };
     let args = Args::parse();
 
-    let time1 = args
-        .start_time
-        .unwrap_or_else(|| Utc::now() - Duration::minutes(5));
-    let time2 = args.end_time.unwrap_or_else(Utc::now);
-    let start_time = format_datetime(&time1);
-    let end_time = format_datetime(&time2);
+    let start_time = match args.start_time {
+        Some(start_time) => Args::format_datetime(&start_time),
+        None => Args::format_datetime(&(Utc::now() - Duration::minutes(5))),
+    };
+    let end_time = match args.end_time {
+        Some(end_time) => Args::format_datetime(&end_time),
+        None => Args::format_datetime(&Utc::now()),
+    };
 
     if args.verbose {
         println!();
@@ -71,8 +133,8 @@ async fn main() -> Result<(), reqwest::Error> {
     }
 
     let endpoint = format!(
-        "https://api.cloudflare.com/client/v4/accounts/{}/logs/retrieve?start={}&end={}&bucket={}",
-        account_id, start_time, end_time, bucket
+        "https://api.cloudflare.com/client/v4/accounts/{}/logs/retrieve?start={}&end={}&bucket={}&prefix={}",
+        env.cf_account_id, start_time, end_time, env.bucket_name, "{DATE}"
     );
     if args.verbose {
         println!();
@@ -83,9 +145,9 @@ async fn main() -> Result<(), reqwest::Error> {
     let client = reqwest::Client::new();
     let res = client
         .get(&endpoint)
-        .header("Authorization", format!("Bearer {}", api_key))
-        .header("R2-Access-Key-Id", r2_access_key_id)
-        .header("R2-Secret-Access-Key", r2_secret_access_key)
+        .header("Authorization", format!("Bearer {}", env.cf_api_key))
+        .header("R2-Access-Key-Id", env.r2_access_key_id)
+        .header("R2-Secret-Access-Key", env.r2_secret_access_key)
         .send()
         .await?;
 
@@ -97,31 +159,11 @@ async fn main() -> Result<(), reqwest::Error> {
     let text = res.text().await?;
     if text.is_empty() {
         eprintln!("No logs found");
+        eprintln!("Please check time range");
         return Ok(());
     }
 
-    for line in text.lines() {
-        match serde_json::from_str::<Value>(line) {
-            Ok(json) => {
-                if args.pretty {
-                    match serde_json::to_string_pretty(&json) {
-                        Ok(formatted) => println!("{}", formatted),
-                        Err(e) => eprintln!("Failed to format JSON: {}", e),
-                    }
-                } else {
-                    match serde_json::to_string(&json) {
-                        Ok(formatted) => println!("{}", formatted),
-                        Err(e) => eprintln!("Failed to format JSON: {}", e),
-                    }
-                }
-            }
-            Err(e) => eprintln!("Failed to parse JSON: {}", e),
-        }
-    }
+    println!("{}", text);
 
     Ok(())
-}
-
-fn format_datetime(datetime: &chrono::DateTime<Utc>) -> String {
-    datetime.format("%Y-%m-%dT%H:%M:%SZ").to_string()
 }
