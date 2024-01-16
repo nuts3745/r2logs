@@ -42,7 +42,6 @@
 mod api;
 mod commands;
 mod config;
-mod utils;
 
 use commands::{Args, Commands};
 use config::Env;
