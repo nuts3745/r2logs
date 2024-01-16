@@ -26,7 +26,7 @@
 //! - [R2](https://developers.cloudflare.com/r2/)
 
 use chrono::{DateTime, Duration, Utc};
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use std::env;
 
 /// ## CLI Arguments and Options
@@ -38,19 +38,55 @@ struct Args {
     /// RFC3339 datetime format (UTC)
     ///
     /// default: 5 minutes ago
-    start_time: Option<DateTime<Utc>>,
+    start_time: Option<String>,
     /// e.g. 2024-01-11T15:05:00Z
     ///
     /// RFC3339 datetime format (UTC)
     ///
     /// default: now
-    end_time: Option<DateTime<Utc>>,
+    end_time: Option<String>,
     /// Verbose output, print time range and endpoint
     #[arg(short, long)]
     verbose: bool,
+    /// Subcommands
+    #[command(subcommand)]
+    commands: Option<Commands>,
+}
+
+struct ParsedArgs {
+    start_time: String,
+    end_time: String,
+    verbose: bool,
+    commands: Option<Commands>,
 }
 
 impl Args {
+    fn get_parsed() -> ParsedArgs {
+        let args = Self::parse();
+        args.parse_and_check()
+    }
+
+    fn parse_and_check(self) -> ParsedArgs {
+        let start_time = match self.start_time {
+            Some(start_time) => {
+                Self::format_datetime(&start_time.parse::<DateTime<Utc>>().unwrap())
+            }
+            None => Self::format_datetime(&(Utc::now() - Duration::minutes(5))),
+        };
+        let end_time = match self.end_time {
+            Some(end_time) => Self::format_datetime(&end_time.parse::<DateTime<Utc>>().unwrap()),
+            None => Self::format_datetime(&Utc::now()),
+        };
+        let verbose = self.verbose;
+
+        ParsedArgs {
+            start_time,
+            end_time,
+            verbose,
+            commands: self.commands,
+        }
+    }
+
     fn format_datetime(datetime: &DateTime<Utc>) -> String {
         datetime.format("%Y-%m-%dT%H:%M:%SZ").to_string()
     }
@@ -103,6 +139,18 @@ impl Env {
     }
 }
 
+/// ## Subcommands
+/// - `Retrieve`: Stream logs stored in R2 that match the provided query parameters.
+///   - This is the default subcommand.
+/// - `List`: List relevant R2 objects containing logs matching the provided query parameters.
+#[derive(Subcommand, Debug)]
+enum Commands {
+    /// (default) Stream logs stored in R2 that match the provided query parameters.
+    Retrieve,
+    /// List relevant R2 objects containing logs matching the provided query parameters.
+    List,
+}
+
 #[tokio::main]
 async fn main() -> Result<(), reqwest::Error> {
     let env = match Env::new() {
@@ -113,29 +161,36 @@ async fn main() -> Result<(), reqwest::Error> {
             return Ok(());
         }
     };
-    let args = Args::parse();
-
-    let start_time = match args.start_time {
-        Some(start_time) => Args::format_datetime(&start_time),
-        None => Args::format_datetime(&(Utc::now() - Duration::minutes(5))),
-    };
-    let end_time = match args.end_time {
-        Some(end_time) => Args::format_datetime(&end_time),
-        None => Args::format_datetime(&Utc::now()),
-    };
+    let args = Args::get_parsed();
 
     if args.verbose {
         println!();
         println!(
-            "Retrieving logs from \x1b[32m{}\x1b[0m to \x1b[32m{}\x1b[0m ",
-            start_time, end_time
+            "Retrieving logs from \x1b[32m{:?}\x1b[0m to \x1b[32m{:?}\x1b[0m ",
+            &args.start_time, &args.end_time
         );
     }
 
-    let endpoint = format!(
-        "https://api.cloudflare.com/client/v4/accounts/{}/logs/retrieve?start={}&end={}&bucket={}&prefix={}",
-        env.cf_account_id, start_time, end_time, env.bucket_name, "{DATE}"
-    );
+    let endpoint = match &args.commands {
+        Some(Commands::Retrieve) => {
+            format!(
+                "https://api.cloudflare.com/client/v4/accounts/{}/logs/retrieve?start={}&end={}&bucket={}&prefix={}",
+                env.cf_account_id, args.start_time, args.end_time, env.bucket_name, "{DATE}"
+            )
+        }
+        Some(Commands::List) => {
+            format!(
+                "https://api.cloudflare.com/client/v4/accounts/{}/logs/list?start={}&end={}&bucket={}&prefix={}",
+                env.cf_account_id, args.start_time, args.end_time, env.bucket_name, "{DATE}"
+            )
+        }
+        None => {
+            format!(
+                "https://api.cloudflare.com/client/v4/accounts/{}/logs/retrieve?start={}&end={}&bucket={}&prefix={}",
+                env.cf_account_id, args.start_time, args.end_time, env.bucket_name, "{DATE}"
+            )
+        }
+    };
     if args.verbose {
         println!();
         println!("Accessing endpoint: \x1b[32m{}\x1b[0m", endpoint);
@@ -166,4 +221,69 @@ async fn main() -> Result<(), reqwest::Error> {
     println!("{}", text);
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    mod clap_test {
+        use super::*;
+        use chrono::TimeZone;
+
+        #[test]
+        fn test_parse_and_check() {
+            let args = Args {
+                start_time: None,
+                end_time: None,
+                verbose: false,
+                commands: None,
+            };
+
+            let parsed_args = args.parse_and_check();
+            let now = Utc::now();
+            let five_minutes_ago = now - Duration::minutes(5);
+
+            assert_eq!(
+                parsed_args.start_time,
+                Args::format_datetime(&five_minutes_ago)
+            );
+            assert_eq!(parsed_args.end_time, Args::format_datetime(&now));
+            assert!(!parsed_args.verbose);
+        }
+
+        #[test]
+        fn test_time_range() {
+            let args = Args {
+                start_time: Some("2024-01-11T15:00:00Z".to_string()),
+                end_time: Some("2024-01-11T15:05:00Z".to_string()),
+                verbose: true,
+                commands: None,
+            };
+            let parsed_args = args.parse_and_check();
+            assert_eq!(parsed_args.start_time, "2024-01-11T15:00:00Z");
+            assert_eq!(parsed_args.end_time, "2024-01-11T15:05:00Z");
+            assert!(parsed_args.verbose);
+        }
+
+        #[test]
+        fn test_get_parsed() {
+            let parsed_args = Args::get_parsed();
+            let now = Utc::now();
+            let five_minutes_ago = now - Duration::minutes(5);
+
+            assert_eq!(
+                parsed_args.start_time,
+                Args::format_datetime(&five_minutes_ago)
+            );
+            assert_eq!(parsed_args.end_time, Args::format_datetime(&now));
+            assert!(!parsed_args.verbose);
+        }
+
+        #[test]
+        fn test_format_datetime() {
+            let datetime = Utc.with_ymd_and_hms(2024, 1, 11, 15, 5, 0).unwrap();
+            assert_eq!(Args::format_datetime(&datetime), "2024-01-11T15:05:00Z");
+        }
+    }
 }
