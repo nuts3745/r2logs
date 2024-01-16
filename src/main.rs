@@ -5,12 +5,12 @@
 //! $ r2logs [OPTIONS] [START_TIME] [END_TIME] [COMMAND]
 //! $ r2logs # retrieve logs from 5 minutes ago to now
 //! $ r2logs list # list relevant R2 objects containing logs
-//! 
+//!
 //! # retrieve logs from 2024-01-11T15:00:00Z to 2024-01-11T15:05:00Z
 //! $ r2logs 2024-01-11T15:00:00Z 2024-01-11T15:05:00Z
 //! # list relevant R2 objects containing logs from 2024-01-11T15:00:00Z to 2024-01-11T15:05:00Z
 //! $ r2logs 2024-01-11T15:00:00Z 2024-01-11T15:05:00Z list
-//! 
+//!
 //! $ r2logs | jq . # pretty print JSON
 //! $ r2logs --help # print help
 //! ```
@@ -122,34 +122,33 @@ struct Env {
 
 impl Env {
     fn new() -> Result<Self, String> {
-        let cf_api_key = match env::var("CF_API_KEY") {
-            Ok(val) => val,
-            Err(_) => return Err("CF_API_KEY is not set".to_string()),
-        };
-        let r2_access_key_id = match env::var("R2_ACCESS_KEY_ID") {
-            Ok(val) => val,
-            Err(_) => return Err("R2_ACCESS_KEY_ID is not set".to_string()),
-        };
-        let r2_secret_access_key = match env::var("R2_SECRET_ACCESS_KEY") {
-            Ok(val) => val,
-            Err(_) => return Err("R2_SECRET_ACCESS_KEY is not set".to_string()),
-        };
-        let cf_account_id = match env::var("CF_ACCOUNT_ID") {
-            Ok(val) => val,
-            Err(_) => return Err("CF_ACCOUNT_ID is not set".to_string()),
-        };
-        let bucket_name = match env::var("BUCKET_NAME") {
-            Ok(val) => val,
-            Err(_) => return Err("BUCKET_NAME is not set".to_string()),
-        };
+        let mut error_messages = Vec::<String>::new();
+        let cf_api_key = Self::get_env_var("CF_API_KEY", &mut error_messages);
+        let r2_access_key_id = Self::get_env_var("R2_ACCESS_KEY_ID", &mut error_messages);
+        let r2_secret_access_key = Self::get_env_var("R2_SECRET_ACCESS_KEY", &mut error_messages);
+        let cf_account_id = Self::get_env_var("CF_ACCOUNT_ID", &mut error_messages);
+        let bucket_name = Self::get_env_var("BUCKET_NAME", &mut error_messages);
 
-        Ok(Self {
-            cf_api_key,
-            r2_access_key_id,
-            r2_secret_access_key,
-            cf_account_id,
-            bucket_name,
-        })
+        match error_messages.len() {
+            0 => Ok(Self {
+                cf_api_key,
+                r2_access_key_id,
+                r2_secret_access_key,
+                cf_account_id,
+                bucket_name,
+            }),
+            _ => Err(error_messages.join("\n")),
+        }
+    }
+
+    fn get_env_var(var_name: &str, error_messages: &mut Vec<String>) -> String {
+        match env::var(var_name) {
+            Ok(value) => value,
+            Err(_) => {
+                error_messages.push(format!("{} is not set", var_name));
+                "".to_string()
+            }
+        }
     }
 }
 
@@ -171,6 +170,7 @@ async fn main() -> Result<(), reqwest::Error> {
         Ok(env) => env,
         Err(e) => {
             eprintln!("{}", e);
+            println!();
             eprintln!("Please set environment variables");
             return Ok(());
         }
