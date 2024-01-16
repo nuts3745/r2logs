@@ -1,5 +1,5 @@
-use crate::Env;
 use crate::ParsedArgs;
+use crate::UrlEnv;
 use chrono::{DateTime, Duration, SecondsFormat, Utc};
 use clap::{Parser, Subcommand};
 
@@ -72,7 +72,7 @@ pub enum Commands {
 }
 
 impl Commands {
-    pub fn get_endpoint(&self, args: &ParsedArgs, env: &Env) -> String {
+    pub fn get_endpoint(&self, args: &ParsedArgs, env: &UrlEnv) -> String {
         let endpoint = self.build_endpoint(args, env);
         if args.verbose {
             println!();
@@ -82,7 +82,7 @@ impl Commands {
         endpoint
     }
 
-    fn build_endpoint(&self, args: &ParsedArgs, env: &Env) -> String {
+    fn build_endpoint(&self, args: &ParsedArgs, env: &UrlEnv) -> String {
         let base_url = format!(
             "https://api.cloudflare.com/client/v4/accounts/{}/logs",
             env.cf_account_id

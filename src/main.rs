@@ -43,8 +43,9 @@ mod api;
 mod commands;
 mod config;
 
+use crate::{api::ApiEnv, config::Env};
 use commands::{Args, Commands};
-use config::Env;
+use config::UrlEnv;
 
 struct ParsedArgs {
     start_time: String,
@@ -56,7 +57,8 @@ struct ParsedArgs {
 #[tokio::main]
 async fn main() -> Result<(), reqwest::Error> {
     // the environment configuration
-    let env = Env::get_env();
+    let url_env = UrlEnv::get_env();
+    let api_env = ApiEnv::get_env();
     // the command line arguments
     let args = Args::get_parsed();
 
@@ -65,15 +67,15 @@ async fn main() -> Result<(), reqwest::Error> {
     // Otherwise, it returns the default value `Commands::Retrieve`.
     let command = args.commands.clone().unwrap_or(Commands::Retrieve);
     // the endpoint for the command
-    let endpoint = command.get_endpoint(&args, &env);
+    let endpoint = command.get_endpoint(&args, &url_env);
 
     let client = reqwest::Client::new();
     let text = api::fetch_logs(
         &client,
         &endpoint,
-        &env.cf_api_key,
-        &env.r2_access_key_id,
-        &env.r2_secret_access_key,
+        &api_env.cf_api_key,
+        &api_env.r2_access_key_id,
+        &api_env.r2_secret_access_key,
     )
     .await?;
 

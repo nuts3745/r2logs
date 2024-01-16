@@ -1,5 +1,35 @@
 use reqwest::Client;
 
+use crate::config::Env;
+
+pub struct ApiEnv {
+    pub cf_api_key: String,
+    pub r2_access_key_id: String,
+    pub r2_secret_access_key: String,
+}
+
+impl Env for ApiEnv {
+    fn new() -> Result<Self, String> {
+        let mut error_messages = Vec::<String>::new();
+
+        let cf_api_key = Self::get_env_var_or_default("CF_API_KEY", &mut error_messages);
+        let r2_access_key_id =
+            Self::get_env_var_or_default("R2_ACCESS_KEY_ID", &mut error_messages);
+        let r2_secret_access_key =
+            Self::get_env_var_or_default("R2_SECRET_ACCESS_KEY", &mut error_messages);
+
+        if !error_messages.is_empty() {
+            return Err(error_messages.join("\n"));
+        }
+
+        Ok(Self {
+            cf_api_key,
+            r2_access_key_id,
+            r2_secret_access_key,
+        })
+    }
+}
+
 pub async fn fetch_logs(
     client: &Client,
     endpoint: &str,
