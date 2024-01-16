@@ -16,6 +16,7 @@ Retrieve logs within a specified time range using `r2logs`. Time format: `YYYY-M
 $ r2logs [OPTIONS] [START_TIME] [END_TIME]
 $ r2logs # retrieve logs from 5 minutes ago to now
 $ r2logs --help # print help
+$ r2logs list # list relevant R2 objects containing logs
 ```
 ## Examples 📝
 
@@ -27,6 +28,12 @@ Pretty print JSON output with [jq](https://github.com/jqlang/jq) and
 Fuzzy search logs with [fzf](https://github.com/junegunn/fzf)
   ```zsh
   $ r2logs | jq . | fzf
+  ```
+
+List relevant R2 objects containing logs matching the provided query parameters:
+  ```zsh
+  $ r2logs list
+  $ r2logs 2024-01-11T15:00:00Z 2024-01-11T15:01:00Z list
   ```
 
 ## Environment Variables 🌐

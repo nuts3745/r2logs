@@ -2,12 +2,26 @@
 //! A simple CLI tool to retrieve logs from Cloudflare Logs Engine.
 //! ## Usage
 //! ```zsh
-//! r2logs [OPTIONS] [START_TIME] [END_TIME]
-//! r2logs # retrieve logs from 5 minutes ago to now
-//! r2logs 2024-01-11T15:00:00Z 2024-01-11T15:05:00Z # retrieve logs from 2024-01-11T15:00:00Z to 2024-01-11T15:05:00Z
-//! r2logs | jq . # pretty print JSON
-//! r2logs --help # print help
+//! $ r2logs [OPTIONS] [START_TIME] [END_TIME] [COMMAND]
+//! $ r2logs # retrieve logs from 5 minutes ago to now
+//! $ r2logs list # list relevant R2 objects containing logs
+//! 
+//! # retrieve logs from 2024-01-11T15:00:00Z to 2024-01-11T15:05:00Z
+//! $ r2logs 2024-01-11T15:00:00Z 2024-01-11T15:05:00Z
+//! # list relevant R2 objects containing logs from 2024-01-11T15:00:00Z to 2024-01-11T15:05:00Z
+//! $ r2logs 2024-01-11T15:00:00Z 2024-01-11T15:05:00Z list
+//! 
+//! $ r2logs | jq . # pretty print JSON
+//! $ r2logs --help # print help
 //! ```
+//! ## Commands
+//! Commands:
+//! - retrieve (default)
+//!   - Stream logs stored in R2 that match the provided query parameters
+//! - list
+//!   - List relevant R2 objects containing logs matching the provided query parameters
+//! - help
+//!   - Print this message or the help of the given subcommand(s)
 //! ## Options
 //! - -v, --verbose
 //!   - Verbose output, print time range and endpoint
