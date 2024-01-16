@@ -9,6 +9,15 @@ Install `r2logs` with:
 $ cargo install r2logs --path .
 ```
 
+## Environment Variables 🌐
+Set up these variables before using `r2logs`:
+
+- `CF_API_KEY`: Your Cloudflare API key.
+- `R2_ACCESS_KEY_ID`: Your R2 Access Key ID.
+- `R2_SECRET_ACCESS_KEY`: Your R2 Secret Access Key.
+- `CF_ACCOUNT_ID`: Your Cloudflare Account ID.
+- `BUCKET_NAME`: Name of the bucket for log retrieval.
+
 ## Usage 🔍
 Retrieve logs within a specified time range using `r2logs`. Time format: `YYYY-MM-DDTHH:MM:SSZ`.
 
@@ -35,15 +44,6 @@ List relevant R2 objects containing logs matching the provided query parameters:
   $ r2logs list
   $ r2logs 2024-01-11T15:00:00Z 2024-01-11T15:01:00Z list
   ```
-
-## Environment Variables 🌐
-Set up these variables before using `r2logs`:
-
-- `CF_API_KEY`: Your Cloudflare API key.
-- `R2_ACCESS_KEY_ID`: Your R2 Access Key ID.
-- `R2_SECRET_ACCESS_KEY`: Your R2 Secret Access Key.
-- `CF_ACCOUNT_ID`: Your Cloudflare Account ID.
-- `BUCKET_NAME`: Name of the bucket for log retrieval.
 
 ## Contributing 👐
 Your contributions to `r2logs` are highly appreciated! If you've got ideas for improvements or wish to contribute code, please feel free to open issues or submit PRs on our [GitHub repository](https://github.com/nuts3745/r2logs).
