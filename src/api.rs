@@ -339,7 +339,7 @@ mod reqwest_tests {
         }
         "#;
         let mock = server
-            .mock("GET", "/")
+            .mock("GET", "/invalid_r2_access_key_id")
             .match_header("Authorization", "Bearer cf_api_key")
             .match_header("R2-Access-Key-Id", Matcher::Missing)
             .match_header("R2-Secret-Access-Key", "r2_secret_access_key")
