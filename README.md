@@ -12,10 +12,10 @@ $ cargo install r2logs --path .
 ## Environment Variables 🌐
 Set up these variables before using `r2logs`:
 
-- `CF_API_KEY`: Your Cloudflare API key.
+- `CLOUDFLARE_API_KEY`: Your Cloudflare API key.
 - `R2_ACCESS_KEY_ID`: Your R2 Access Key ID.
 - `R2_SECRET_ACCESS_KEY`: Your R2 Secret Access Key.
-- `CF_ACCOUNT_ID`: Your Cloudflare Account ID.
+- `CLOUDFLARE_ACCOUNT_ID`: Your Cloudflare Account ID.
 - `BUCKET_NAME`: Name of the bucket for log retrieval.
 
 ## Usage 🔍

@@ -1,10 +1,10 @@
 use std::env;
 
 /// ## Environment Variables
-/// - `CF_API_KEY`: Cloudflare API key
+/// - `CLOUDFLARE_API_KEY`: Cloudflare API key
 /// - `R2_ACCESS_KEY_ID`: R2 Access Key ID
 /// - `R2_SECRET_ACCESS_KEY`: R2 Secret Access Key
-/// - `CF_ACCOUNT_ID`: Cloudflare Account ID
+/// - `CLOUDFLARE_ACCOUNT_ID`: Cloudflare Account ID
 /// - `BUCKET_NAME`: Bucket name
 pub struct UrlEnv {
     pub cf_account_id: String,
@@ -41,7 +41,7 @@ impl Env for UrlEnv {
     fn new() -> Result<Self, String> {
         let mut error_messages = Vec::<String>::new();
 
-        let cf_account_id = Self::get_env_var_or_default("CF_ACCOUNT_ID", &mut error_messages);
+        let cf_account_id = Self::get_env_var_or_default("CLOUDFLARE_ACCOUNT_ID", &mut error_messages);
         let bucket_name = Self::get_env_var_or_default("BUCKET_NAME", &mut error_messages);
 
         if !error_messages.is_empty() {

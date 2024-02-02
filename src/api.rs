@@ -12,7 +12,7 @@ impl Env for ApiEnv {
     fn new() -> Result<Self, String> {
         let mut error_messages = Vec::<String>::new();
 
-        let cf_api_key = Self::get_env_var_or_default("CF_API_KEY", &mut error_messages);
+        let cf_api_key = Self::get_env_var_or_default("CLOUDFLARE_API_KEY", &mut error_messages);
         let r2_access_key_id =
             Self::get_env_var_or_default("R2_ACCESS_KEY_ID", &mut error_messages);
         let r2_secret_access_key =
