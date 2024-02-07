@@ -41,7 +41,8 @@ impl Env for UrlEnv {
     fn new() -> Result<Self, String> {
         let mut error_messages = Vec::<String>::new();
 
-        let cf_account_id = Self::get_env_var_or_default("CLOUDFLARE_ACCOUNT_ID", &mut error_messages);
+        let cf_account_id =
+            Self::get_env_var_or_default("CLOUDFLARE_ACCOUNT_ID", &mut error_messages);
         let bucket_name = Self::get_env_var_or_default("BUCKET_NAME", &mut error_messages);
 
         if !error_messages.is_empty() {
